@@ -1,7 +1,7 @@
+**查看该页面其他语言版本: **
+**[English](README.en.md), [中文](README.md).**
 # **Jusvain UI模块**
-
-**其他语言版本: [English](README.en.md), [中文](README.md).**
-
+---
 ### **开发者与更新社区**
 - **开发者**：白杳
 - **QQ群组**：Baiyao XTC Jusvain - A 906267215
