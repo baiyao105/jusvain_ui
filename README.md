@@ -1,5 +1,4 @@
-**查看该页面其他语言版本: **
-**[English](README.en.md), [中文](README.md).**
+**查看该页面其他语言版本: [English](README.en.md), [中文](README.md).**
 # **Jusvain UI模块**
 ---
 ### **开发者与更新社区**
