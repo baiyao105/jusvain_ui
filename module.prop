@@ -1,0 +1,10 @@
+id=Jusvain_UI
+name=Jusvain UI
+author=白杳(@baiyao105)
+version=V0.8.73_raw
+description=[残花无零，落红无情]JusvainUI主分支.
+versionCode=0087320250101
+updateJson=https://gitee.com/baiyao105/jusvain_ui/raw/master/Web/update.json
+update=true
+minMagisk=23000
+priority=999999

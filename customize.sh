@@ -16,7 +16,6 @@ on_sundry(){
   hash=$(  echo -n "$input_string" | sha256sum | awk '{print $1}')
   string=${hash:0:8}
   MODPATH=${MODPATH}.${string}
-  #取前8位为唯一标识,重定义路径
 }
 print_Temp() {
 
@@ -86,6 +85,8 @@ print_modname() {
   ui_print "- 您的设备唯一标识符: $string"
   ui_print "- 按照隐私协议,您的设备唯一标识符将用于统计次数以及错误调查."
   ui_print "- 我们将保证您的的唯一标识符及设备信息不会用于其他用途."
+  ui_print "- 隐私协议: https://gitee.com/baiyao105/jusvain_ui#隐私协议"
+  ui_print "- 使用协议: https://gitee.com/baiyao105/jusvain_ui#使用协议"
   ui_print "- 安装位置: $MODPATH"
   ui_print "######################################################"
 }
@@ -112,6 +113,41 @@ module_validation(){
   for f in /data/adb/modules/*/module.prop; do
     sed -i '/^priority=/d' "$f"
     done
+}
+check(){
+  #!/bin/bash
+
+nature_names=()
+sky_imoo_names=()
+for dir in /data/adb/modules/*/; do
+  if [ -f "$dir/module.prop" ]; then
+    if grep -q "极光" "$dir/module.prop" || grep -q "Nature" "$dir/module.prop"; then
+      name=$(grep_prop name "$dir/module.prop")
+      if [ -n "$name" ]; then
+        nature_names+=("$name")
+      fi
+    fi
+    if grep -q "Sky-iMoo" "$dir/module.prop"; then
+      name=$(grep_prop name "$dir/module.prop")
+      if [ -n "$name" ]; then
+        sky_imoo_names+=("$name")
+      fi
+    fi
+  fi
+done
+if [ ${#nature_names[@]} -gt 0 ]; then
+  echo -n "包含 '极光' 或 'Nature' 的模块名称："
+  printf "%s " "${nature_names[@]}"
+  echo
+fi
+if [ ${#sky_imoo_names[@]} -gt 0 ]; then
+  echo -n "包含 'Sky-iMoo' 的模块名称："
+  printf "%s " "${sky_imoo_names[@]}"
+  echo
+else
+  echo "没有模块包含 'Sky-iMoo'"
+fi
+
 }
 install(){
   touch $MODDIR/log.txt || abort " 创建log文件出错"
