@@ -1,6 +1,6 @@
-**View this page in other languages: [中文](README.md).**
+**View this page in other languages:[中文](README.md).**
 # **Jusvain UI Module**
-
+---
 ### **Developer and Update Community**
 - **Developer**: Baiyao
 - **QQ Group**: Baiyao XTC Jusvain - A 906267215
