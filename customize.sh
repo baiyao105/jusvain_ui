@@ -22,8 +22,15 @@ on_sundry(){
   bindnumber=$(getprop ro.boot.bindnumber)
   chipid=$(getprop ro.boot.xtc.chipid)
   serverinner=$(getprop persist.sys.serverinner)
+  model="`grep_prop ro.product.innermodel`"
+  if [[ "$serverinner" == "" ]]; then
+    serverinner=$model
+  fi
+  if [[ "$chipid" == "" ]]; then
+    abort "Chipid获取失败????"
+  fi
   Hwmac=$(cat /sys/class/net/wlan0/address)
-  input_string="${bindnumber}${chipid}${serverinner}${Hwmac}"
+  input_string="${bindnumber}${serverinner}${chipid}${Hwmac}"
   hash=$(echo -n "$input_string" | sha256sum | awk '{print $1}')
   Ostring=${hash:0:8}
   OMODPATH=${MODPATH}.${string}
@@ -70,8 +77,8 @@ print_Temp() {
       webstate=0
       if [[ -f "$TMPDIR/Tbest" ]]; then
           decoded_tbest=$(base64 -d "$TMPDIR/Tbest")
-          text=$(  echo "$decoded_tbest" | grep -oP 'text:\[\K[^\]]+')
-          text_array=($(  echo "$text" | tr -d '[]" ' | tr ',' '\n'))
+          text=$(echo "$decoded_tbest" | grep -oP 'text:\[\K[^\]]+')
+          text_array=($(echo "$text" | tr -d '[]" ' | tr ',' '\n'))
           random_index=$((RANDOM % ${#text_array[@]}))
           number=0
           best_text="${text_array[$random_index]}"
@@ -82,7 +89,6 @@ print_Temp() {
     ver="`grep_prop version $TMPDIR/module.prop`"
     code="`grep_prop versionCode $TMPDIR/module.prop`"
     id="`grep_prop id $TMPDIR/module.prop`"
-    model="`grep_prop ro.product.innermodel`"
     imoo_ver="`grep_prop ro.product.current.softversion`"
     produce="`grep_prop ro.product.manufacturer`"
 }
@@ -116,7 +122,7 @@ print_modname() {
                   else
                     abort "! 不支持该机型-$model"
                     fi
-  ui_print "- 您的设备唯一标识符: $Ostring"
+  ui_print "- 您的设备唯一标识符: ${Ostring}"
   ui_print "- 按照隐私协议,我们将保证您的的唯一标识符及设备信息不会用于其他用途."
   ui_print "- 隐私协议: gitee.com/baiyao105/jusvain_ui#隐私协议"
   ui_print "- 使用协议: gitee.com/baiyao105/jusvain_ui#使用协议"
