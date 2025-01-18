@@ -2,23 +2,48 @@
 #!/bin/bash
 # Module Protecter_Install
 # 警告:不要修改这个文件，除非你知道你在做什么
+# 使用提醒:请在安全/正规的环境下载并使用,谨防他人二改中招
 # 请勿测/超/意淫作者，否则后果自负
 # Update by Jusvain_ui V0.8.73
 # Customization script by Jusvain_ui - @baiyao105
 SKIPUNZIP=1
+
+function get_config() {
+  cat $sundry_config | grep -v '^#' | grep "^$1=" | cut -f2 -d '='
+}
+
 on_sundry(){
   unzip -j -o "${ZIPFILE}" 'Sundry/Tbest' -d $TMPDIR >&2 || abort "解压临时文件出错"
   unzip -j -o "${ZIPFILE}" 'Sundry/md5' -d $TMPDIR >&2 || abort "解压临时文件出错"
   unzip -j -o "${ZIPFILE}" 'Sundry/config.conf' -d $TMPDIR >&2 || abort "解压临时文件出错"
   unzip -j -o "${ZIPFILE}" 'module.prop' -d $TMPDIR >&2 || abort "解压临时文件出错"
+  mkdir "/sdcard/Android/Jusvain"
+  sundry_config="$TMPDIR/config.conf"
   bindnumber=$(getprop ro.boot.bindnumber)
   chipid=$(getprop ro.boot.xtc.chipid)
   serverinner=$(getprop persist.sys.serverinner)
   Hwmac=$(cat /sys/class/net/wlan0/address)
   input_string="${bindnumber}${chipid}${serverinner}${Hwmac}"
   hash=$(echo -n "$input_string" | sha256sum | awk '{print $1}')
-  string=${hash:0:8}
-  MODPATH=${MODPATH}.${string}
+  Ostring=${hash:0:8}
+  OMODPATH=${MODPATH}.${string}
+  dlog=$(get_config log)
+  ddev=$(get_config developer)
+  if [["$ddev" == "ture"]]; then
+    ui_print "- [开发者]开发者模式被开启"
+    target_dev=10
+  else
+    target_dev=00
+  fi
+  if [[ "$dlog" == "ture" ]]; then
+    Clog=1
+    Flog="$TMPDIR/installer.log"
+    touch ${Flog}
+    ui_print "- [开发者]日志模式被开启"
+  else
+    Clog=0
+    Flog="/dev/null 2>&1"
+  fi
   # 定义颜色代码,基本ANSI转义序列
   Red='\033[0;31m'
   Green='\033[0;32m'
@@ -28,13 +53,13 @@ on_sundry(){
   # echo -e "${RED}Error:${NC} Something went wrong."  #输出红色字符串
 }
 print_Temp() {
-  if ping -c 1 -W 1 gitee.com &>/dev/null; then
+  if ping -c 1 -W 1 gitee.com >> ${Flog}; then
       URL="https://gitee.com/baiyao105/jusvain/raw/master/Web/Best"
       data=$(curl -s "$URL")
-      number=$(  echo "$data" | grep -oP 'number="\K[0-9]+')
-      startdate=$(  echo "$data" | grep -oP 'startdate="\K[0-9]+')
-      enddate=$(  echo "$data" | grep -oP 'enddate="\K[0-9]+')
-      text=$(  echo "$data" | grep -oP 'text:\[\K[^\]]+')
+      number=$(echo "$data" | grep -oP 'number="\K[0-9]+')
+      startdate=$(echo "$data" | grep -oP 'startdate="\K[0-9]+')
+      enddate=$(echo "$data" | grep -oP 'enddate="\K[0-9]+')
+      text=$(echo "$data" | grep -oP 'text:\[\K[^\]]+')
       current_date=$(date +%Y%m%d)
       if [[ "$current_date" -ge "$startdate" && "$current_date" -le "$enddate" ]]; then
         text_array=($(  echo "$text" | tr -d '[]" ' | tr ',' '\n'))
@@ -63,12 +88,12 @@ print_Temp() {
 }
 print_modname() {
   ui_print "#####################################################"
-  ui_print "Jusvain UI - $ver ($code).$webstate"
-  ui_print "-?? $best_text"
+  ui_print "Jusvain UI - ${ver}($code).${webstate}_${target_dev}"
+  ui_print "- *$best_text"
   if [ "$number" == 0 ];then
-    ui_print "? 感谢有你 - 以本模块基础分支刷入次数超过6000 次!"
+    ui_print "- *感谢有你 - 以本模块基础分支刷入次数超过6000 次!"
   else 
-    ui_print "? 感谢有你 - 以本模块基础分支刷入次数超过${number}次!" 
+    ui_print "- *感谢有你 - 以本模块基础分支刷入次数超过${number}次!" 
     fi
   ui_print "#####################################################"
   if [ "$model" == I25 ];then
@@ -91,7 +116,7 @@ print_modname() {
                   else
                     abort "! 不支持该机型-$model"
                     fi
-  ui_print "- 您的设备唯一标识符: $string"
+  ui_print "- 您的设备唯一标识符: $Ostring"
   ui_print "- 按照隐私协议,我们将保证您的的唯一标识符及设备信息不会用于其他用途."
   ui_print "- 隐私协议: gitee.com/baiyao105/jusvain_ui#隐私协议"
   ui_print "- 使用协议: gitee.com/baiyao105/jusvain_ui#使用协议"
@@ -165,7 +190,7 @@ if ["$fpatch" == "1"] ;then
               ui_print "- [XTCPatch]准备开始更新xtcpatch"
               curl -# ${zipurl} -o $TMPDIR/xtcpatch.zip
               ui_print "- [XTCPatch]开始安装xtcpatch,此过程可能需要大约1min,请耐心等待"
-              magisk --install-module $TMPDIR/xtcpatch.zip > /dev/null 2>&1
+              magisk --install-module $TMPDIR/xtcpatch.zip >> ${Flog}
               patchver=$(getprop persist.xtcpatch.version)
               if [ "$patchver" == "$webver" ]; then
                   ui_print "- [XTCPatch]xtcpatch更新完成"
@@ -186,7 +211,9 @@ if [ ${#sky_imoo_names[@]} -gt 0 ]; then
 fi
 }
 install(){
-  touch $MODDIR/log.txt || abort " 创建log文件出错"
+  if ["$Clog" = "1"];then
+    move ${Flog} /sdcard/Android/Jusvain/ || abort " 移动log文件出错"
+  fi
   unzip -j -o "${ZIPFILE}" 'system/*' -d $MODPATH/system >&2 || abort "解压挂载文件出错"
   unzip -j -o "${ZIPFILE}" 'common/post-fs-data.sh' -d $MODPATH >&2 || abort "解压脚本时出错"
   unzip -j -o "${ZIPFILE}" 'common/service.sh' -d $MODPATH >&2 || abort "解压脚本时出错"
@@ -194,11 +221,11 @@ install(){
   unzip -j -o "${ZIPFILE}" 'uninstall.sh' -d $MODPATH >&2 || abort "解压挂载文件出错"
   rm -rf $MODPATH/module.prop
   touch $MODPATH/module.prop
-  echo ro.Jusvain.ipmentId=$string >>$MODPATH/system.prop
-  echo "id=Jusvain_UI.$string" >$MODPATH/module.prop
+  echo "ro.Jusvain.ipmentId=${Ostring}" >>$MODPATH/system.prop
+  echo "id=Jusvain_UI.${Ostring}" >$MODPATH/module.prop
   echo "name=Jusvain UI" >>$MODPATH/module.prop
   echo -n "version=V0.8.73_" >>$MODPATH/module.prop
-  echo ${string} >>$MODPATH/module.prop
+  echo "${Ostring}" >>$MODPATH/module.prop
   echo "versionCode=0087320250101" >>$MODPATH/module.prop
   echo "author=白杳(@baiyao105)" >>$MODPATH/module.prop
   echo "description=JusvainUI主分支,感谢有你.您的设备标识符: $string" >>$MODPATH/module.prop
@@ -206,17 +233,17 @@ install(){
   echo "update=true" >>$MODPATH/module.prop
   echo "minMagisk=23000" >>$MODPATH/module.prop
   echo "priority=999999" >>$MODPATH/module.prop
-  post_fs_data_md5=$(md5sum "$MODPATH/post-fs-data.sh" | awk '{print $1}')
+  post_md5=$(md5sum "$MODPATH/post-fs-data.sh" | awk '{print $1}')
   service_md5=$(md5sum "$MODPATH/service.sh" | awk '{print $1}')
   if [[ -f "$TMPDIR/md5" ]]; then
-    expected_post_fs_data_md5=$(grep -E '^post-fs-data=' "$TMPDIR/md5" | cut -d'=' -f2)
-    expected_service_md5=$(grep -E '^service=' "$TMPDIR/md5" | cut -d'=' -f2)
+    Fmd5_post="`grep_prop post-fs-data $TMPDIR/md5`"
+    Fmd5_service="`grep_prop service $TMPDIR/md5`"
   else
     abort "MD5 文件不存在"
   fi
-  if [[ "$post_fs_data_md5" != "$expected_post_fs_data_md5" ]]; then
+  if [[ "$post_fs_data_md5" != "$Fmd5_post" ]]; then
     abort "post-fs-data的MD5不匹配,模块很有可能损坏了,请重新下载后安装"
-  elif [[ "$service_md5" != "$expected_service_md5" ]]; then
+  elif [[ "$service_md5" != "$Fmd5_service" ]]; then
     abort "Service的MD5不匹配,模块很有可能损坏了,请重新下载后安装"
   fi
 }
