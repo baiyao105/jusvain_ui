@@ -1,24 +1,33 @@
 #!/sbin/sh
 #!/bin/bash
 # Module Protecter_Install
+# 警告:不要修改这个文件，除非你知道你在做什么
+# 请勿测/超/意淫作者，否则后果自负
 # Update by Jusvain_ui V0.8.73
 # Customization script by Jusvain_ui - @baiyao105
 SKIPUNZIP=1
 on_sundry(){
   unzip -j -o "${ZIPFILE}" 'Sundry/Tbest' -d $TMPDIR >&2 || abort "解压临时文件出错"
   unzip -j -o "${ZIPFILE}" 'Sundry/md5' -d $TMPDIR >&2 || abort "解压临时文件出错"
+  unzip -j -o "${ZIPFILE}" 'Sundry/config.conf' -d $TMPDIR >&2 || abort "解压临时文件出错"
   unzip -j -o "${ZIPFILE}" 'module.prop' -d $TMPDIR >&2 || abort "解压临时文件出错"
   bindnumber=$(getprop ro.boot.bindnumber)
   chipid=$(getprop ro.boot.xtc.chipid)
   serverinner=$(getprop persist.sys.serverinner)
   Hwmac=$(cat /sys/class/net/wlan0/address)
   input_string="${bindnumber}${chipid}${serverinner}${Hwmac}"
-  hash=$(  echo -n "$input_string" | sha256sum | awk '{print $1}')
+  hash=$(echo -n "$input_string" | sha256sum | awk '{print $1}')
   string=${hash:0:8}
   MODPATH=${MODPATH}.${string}
+  # 定义颜色代码,基本ANSI转义序列
+  Red='\033[0;31m'
+  Green='\033[0;32m'
+  Yellow='\033[0;33m'
+  Blue='\033[0;34m'
+  NC='\033[0m' #默认
+  # echo -e "${RED}Error:${NC} Something went wrong."  #输出红色字符串
 }
 print_Temp() {
-
   if ping -c 1 -W 1 gitee.com &>/dev/null; then
       URL="https://gitee.com/baiyao105/jusvain/raw/master/Web/Best"
       data=$(curl -s "$URL")
@@ -42,7 +51,7 @@ print_Temp() {
           number=0
           best_text="${text_array[$random_index]}"
       else
-      abort "! 文件不可用，无法获取文本。"
+          abort "! 文件不可用，无法获取文本。"
       fi
   fi
     ver="`grep_prop version $TMPDIR/module.prop`"
@@ -83,10 +92,9 @@ print_modname() {
                     abort "! 不支持该机型-$model"
                     fi
   ui_print "- 您的设备唯一标识符: $string"
-  ui_print "- 按照隐私协议,您的设备唯一标识符将用于统计次数以及错误调查."
-  ui_print "- 我们将保证您的的唯一标识符及设备信息不会用于其他用途."
-  ui_print "- 隐私协议: https://gitee.com/baiyao105/jusvain_ui#隐私协议"
-  ui_print "- 使用协议: https://gitee.com/baiyao105/jusvain_ui#使用协议"
+  ui_print "- 按照隐私协议,我们将保证您的的唯一标识符及设备信息不会用于其他用途."
+  ui_print "- 隐私协议: gitee.com/baiyao105/jusvain_ui#隐私协议"
+  ui_print "- 使用协议: gitee.com/baiyao105/jusvain_ui#使用协议"
   ui_print "- 安装位置: $MODPATH"
   ui_print "######################################################"
 }
@@ -115,39 +123,67 @@ module_validation(){
     done
 }
 check(){
-  #!/bin/bash
-
+# 嗅探模块结构
 nature_names=()
 sky_imoo_names=()
 for dir in /data/adb/modules/*/; do
   if [ -f "$dir/module.prop" ]; then
     if grep -q "极光" "$dir/module.prop" || grep -q "Nature" "$dir/module.prop"; then
       name=$(grep_prop name "$dir/module.prop")
+      id=$(grep_prop id "$dir/module.prop")
       if [ -n "$name" ]; then
         nature_names+=("$name")
-      fi
-    fi
-    if grep -q "Sky-iMoo" "$dir/module.prop"; then
-      name=$(grep_prop name "$dir/module.prop")
-      if [ -n "$name" ]; then
-        sky_imoo_names+=("$name")
+        touch "$dir/disable"
+        touch "$dir/skip_mount"
+        echo "[开发模式] 禁用挂载模块'${name}_${id}'"
       fi
     fi
   fi
+  if grep -q "Sky-iMoo" "$dir/module.prop"; then
+      name=$(grep_prop name "$dir/module.prop")
+      id=$(grep_prop id "$dir/module.prop")
+      if [ -n "$name" ]; then
+        sky_imoo_names+=("$name")
+        if [[ "$id" == *XTCPatch* ]]; then
+          fpatch=1
+        fi
+      fi
+  fi
 done
+if ["$fpatch" == "1"] ;then
+  patchver=$(getprop persist.xtcpatch.version)
+  pa_model=$(grep_prop ro.product.codebranch $dir/system.prop | cut -d'/' -f2)
+  if [ "$model" != "$pa_model" ]; then
+      ui_print "-警告 [XTCPatch]Patch信息与您的设备固件不符"
+      elif [ "$webstate" != "0" ]; then 
+            verurl="https://vip.123pan.cn/1814215835/xtc_root/xtcp_$model.txt"
+            zipurl="https://vip.123pan.cn/1814215835/xtc_root/xtcpatch_$model.zip"
+            webver=$(curl -s $verurl)
+          fi
+          if [ "$patchver" != "$webver" ]; then
+              ui_print "- [XTCPatch]云端版本与您的版本不符[$webver]-[$patchver]"
+              ui_print "- [XTCPatch]准备开始更新xtcpatch"
+              curl -# ${zipurl} -o $TMPDIR/xtcpatch.zip
+              ui_print "- [XTCPatch]开始安装xtcpatch,此过程可能需要大约1min,请耐心等待"
+              magisk --install-module $TMPDIR/xtcpatch.zip > /dev/null 2>&1
+              patchver=$(getprop persist.xtcpatch.version)
+              if [ "$patchver" == "$webver" ]; then
+                  ui_print "- [XTCPatch]xtcpatch更新完成"
+              else
+                  ui_print "! [XTCPatch]xtcpatch更新失败"
+              fi
+          fi
+fi
 if [ ${#nature_names[@]} -gt 0 ]; then
-  echo -n "包含 '极光' 或 'Nature' 的模块名称："
+  echo -n "- 包含'Nature'的模块："
   printf "%s " "${nature_names[@]}"
   echo
 fi
 if [ ${#sky_imoo_names[@]} -gt 0 ]; then
-  echo -n "包含 'Sky-iMoo' 的模块名称："
+  echo -n "- 包含 'Sky-iMoo' 的模块名称："
   printf "%s " "${sky_imoo_names[@]}"
   echo
-else
-  echo "没有模块包含 'Sky-iMoo'"
 fi
-
 }
 install(){
   touch $MODDIR/log.txt || abort " 创建log文件出错"
@@ -165,7 +201,7 @@ install(){
   echo ${string} >>$MODPATH/module.prop
   echo "versionCode=0087320250101" >>$MODPATH/module.prop
   echo "author=白杳(@baiyao105)" >>$MODPATH/module.prop
-  echo "description=Jusvain社区UI主分支,感谢有你.您的设备标识符: $string" >>$MODPATH/module.prop
+  echo "description=JusvainUI主分支,感谢有你.您的设备标识符: $string" >>$MODPATH/module.prop
   echo "updateJson=https://gitee.com/baiyao_file/Bayui/raw/master/update.json" >>$MODPATH/module.prop
   echo "update=true" >>$MODPATH/module.prop
   echo "minMagisk=23000" >>$MODPATH/module.prop
