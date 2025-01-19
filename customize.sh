@@ -139,12 +139,16 @@ module_validation(){
       ui_print "! 请使用magsik23.0及以上安装"
       abort "! 非标准环境"
   fi
-    if [ "$MAGISK_VER_CODE" -lt 23000 ];then
-      ui_print "! Magisk版本低于23.0: $MAGISK_VER_CODE，安装终止。" 
-      abort "!  Magisk版本低于23.0" 
-    else
-      ui_print " - Magisk版本: $MAGISK_VER ($MAGISK_VER_CODE)"
-  fi
+    if [[ "$KSU" == "true" ]]; then
+      ui_print "- KernelSU 用户空间当前的版本号: $KSU_VER_CODE"
+      ui_print "- KernelSU 内核空间当前的版本号: $KSU_KERNEL_VER_CODE"
+      ui_print "- [KernelSU]这对吗?"
+      elif [ "$MAGISK_VER_CODE" -lt 23000 ];then
+        ui_print "! Magisk版本低于23.0: $MAGISK_VER_CODE，安装终止。" 
+        abort "!  Magisk版本低于23.0" 
+      else
+        ui_print " - Magisk版本: $MAGISK_VER ($MAGISK_VER_CODE)"
+    fi
   if [ "$API" -ne 27 ]; then
     ui_print "! 安卓版本不兼容: $API，安装终止。"
     abort "! 设备SDK应为27 (Android 8.1)"
